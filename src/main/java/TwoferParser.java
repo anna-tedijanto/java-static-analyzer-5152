@@ -18,11 +18,11 @@ class TwoferParser {
         boolean containsElse = false;
 
         @Override
-        public void visit(ConditionalExpr ret, Void v) {
-            if (ret.getElseExpr() != null) {
+        public void visit(IfStmt ifs, Void v) {
+            if (ifs.getElseStmt() != null) {
                 containsElse = true;
             }
-            System.out.println(ret);
+            System.out.println(ifs);
         }
     }
 
