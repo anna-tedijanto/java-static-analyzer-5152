@@ -24,16 +24,13 @@ class TwoferParser {
             if (ifs.getElseStmt() != null) {
                 containsElse = true;
             }
-            System.out.println(ifs);
         }
     }
 
     public static boolean parse(String flname) throws Exception {
         CompilationUnit cu = getContent(flname);
-        // System.out.println(cu.toString());
         TwoferFinder tf = new TwoferFinder();
         cu.accept(tf, null);
-
         return tf.containsElse;
     }
 
