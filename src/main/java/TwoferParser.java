@@ -43,6 +43,7 @@ class TwoferParser {
 
     }
 
+    // visits the method call expressions and adds them to a List
     private static class OptionalMethodVisitor extends VoidVisitorAdapter<List<MethodCallExpr>> {
         @Override
         public void visit(MethodCallExpr n, List<MethodCallExpr> arg) {
@@ -51,6 +52,7 @@ class TwoferParser {
         }
     }
 
+    // Checks the return for the correct statement (optimal solution 1)
     private static boolean returnChecker(List<ReturnStmt> returns){
         if(returns.size() > 1){
             System.out.println("Can be refactored to use less return statements");
