@@ -3,10 +3,14 @@ package exercism_parser;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+
+import org.json.*;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
@@ -19,6 +23,7 @@ import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 public class Twofer_Parser {
+	
 	
 	public static CompilationUnit getContent(String flname) throws Exception{
         return JavaParser.parse(new FileInputStream(flname));
@@ -113,8 +118,43 @@ public class Twofer_Parser {
         }
     }
     
+    private static boolean objectsUse(List<ReturnStmt> returns){
+    	if(returns.size() > 1){
+    		//when would this apply?
+    		System.out.println("Can be refactored to use less return statements");    		
+        	return false;
+    	}
+    	else{
+    		ReturnStmt n = returns.get(0);
+    		List<MethodCallExpr> returnMethods = new ArrayList<MethodCallExpr>();
+    		n.accept(new OptionalMethodVisitor(), returnMethods);
+    		if(returnMethods.size() == 2){
+    			if(returnMethods.get(0).getScope().get().toString().equals("String") &&
+    					returnMethods.get(0).getNameAsString().equals("format")){
+    				if(!returnMethods.get(0).getArgument(0).toString().equals("\"One for %s, one for me.\"")){
+    					return false;
+    				};
+    			}
+    			if(returnMethods.get(1).getScope().get().toString().equals("Objects") &&
+    					returnMethods.get(1).getNameAsString().equals("toString")){
+    				if(!returnMethods.get(1).getArgument(0).toString().equals("name")){
+    					return false;
+    				};
+    				if(!returnMethods.get(1).getArgument(1).toString().equals("\"you\"")){
+    					return false;
+    				}
+    			}
+    		}
+    		else{
+    			return false;
+    		}
+    		return true;
+    	}
+    }
+    
     private static boolean optionalUse(List<ReturnStmt> returns){
     	if(returns.size() > 1){
+    		//when would this apply?
     		System.out.println("Can be refactored to use less return statements");    		
         	return false;
     	}
@@ -148,27 +188,41 @@ public class Twofer_Parser {
     }
     
 	public static void main(String [] Args) throws Exception{
+		JSONObject analysis = new JSONObject();
+		String status = "refer_to_mentor";
+		ArrayList<String> comments = new ArrayList<String>();
 		
-		CompilationUnit cu = getContent("twofer.java");
+		CompilationUnit cu = getContent("twofer3.java");
 		
 		//Check that the class name is "twofer"
 		Optional<ClassOrInterfaceDeclaration> classX = cu.getClassByName("twofer");
-		System.out.println("Class properly named: " + classX.isPresent());
+		if (!classX.isPresent()){
+			comments.add("Class is not properly named.");
+			System.out.println("Added comment: Class is not properly named");
+			status = "disapprove_with_comments";
+		}
 		
 		//Check the return statement
 		List<ReturnStmt> returns = new ArrayList<ReturnStmt>();
 		cu.accept(new ReturnVisitor(false), returns);
 		if(returns.size() < 1){
-			System.out.println("There's no return statement");
+			comments.add("There is not return statement");
+			System.out.println("Added comment: There's no return statement");
+			status = "disapprove_with_comments";
 		}
-		System.out.println("\n");
 		
 		//Check for import statements
-		if(cu.getImports().size() > 0){
-			System.out.println("Simplify code to no imports?");
+		if(cu.getImports().size() == 1){
 			if(cu.getImport(0).getName().toString().equals("java.util.Optional")){
-				System.out.println("Used optional properly: " + optionalUse(returns));
+				if (optionalUse(returns)) status = "approve_as_optimal";
 			}
+			if(cu.getImport(0).getName().toString().equals("java.util.Objects")){
+				if (objectsUse(returns)) status = "approve_as_optimal";
+			}
+		}
+		else if(cu.getImports().size() > 1){
+			//what to do here?
+			System.out.println("too many imports");
 		}
 		
 		//Check in the method header for what type is being returned and if there's a parameter (name)		
@@ -179,13 +233,29 @@ public class Twofer_Parser {
 		//If there are multiple return statements, then you want to see if there's if-else
 		IfVisitor ifFinder = new IfVisitor();
 		cu.accept(ifFinder, null);
-		System.out.println("Used if-else statement: " + ifFinder.containsElse);
-		System.out.println("\n");
+		if(ifFinder.containsElse){
+			comments.add("Solved with if-else statements, there are more optimal methods");
+			status = "disapprove_with_comment";
+			System.out.println("Added comment: Solved with if-else statements, there are more optimal methods");
+		}
 		
 		//Checks all methods being called
 //		cu.accept(new MethodCallVisitor(), null);
 		//If there's a variable in return statement, want to check the values of the variables
 		
+		//Writing to the json file
+		analysis.put("status", status);
+		analysis.put("comments", comments);
+		String analysisString = analysis.toString();
+		System.out.println(analysisString);
+		PrintWriter out = null;
+		try {
+		    out = new PrintWriter(new FileWriter("./analysis.json"));
+		    out.write(analysisString);
+		    out.close();
+		} catch (Exception ex) {
+		    System.out.println("error: " + ex.toString());
+		}
 		
 	}
 
