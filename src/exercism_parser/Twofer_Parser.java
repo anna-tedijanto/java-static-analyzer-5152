@@ -22,6 +22,7 @@ import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
+
 public class Twofer_Parser {
 	
 	
@@ -63,11 +64,6 @@ public class Twofer_Parser {
     
     private static class ReturnVisitor extends VoidVisitorAdapter<List<ReturnStmt>> {
     	
-    	private boolean optionalUse;
-    	
-    	public  ReturnVisitor(boolean optionalUse){
-    		this.optionalUse = optionalUse;
-    	}
     	
         @Override
         public void visit(ReturnStmt n, List<ReturnStmt> returnStatements) {
@@ -75,11 +71,6 @@ public class Twofer_Parser {
         	
         	System.out.println("Returning: " + n.getExpression().get().toString());
             returnStatements.add(n);
-            
-            if(this.optionalUse){
-            	n.accept(new OptionalMethodVisitor(), null);
-            }
-            
             
             super.visit(n, returnStatements);
         }
@@ -94,98 +85,9 @@ public class Twofer_Parser {
             if (ifs.getElseStmt() != null) {
                 containsElse = true;
             }
-        	//System.out.println("If Condition: " + ifs.getCondition());
-        	//System.out.println(n.getThenStmt()); //prints out content of if-block
-        	
-        	//Returns Optional.empty if there is no else statement
-        	//System.out.println("Else statement: ");// + n.getElseStmt());
-            
-            //super.visit(n, arg);
         }
     }
     
-    private static class OptionalMethodVisitor extends VoidVisitorAdapter<List<MethodCallExpr>> {
-        @Override
-        public void visit(MethodCallExpr n, List<MethodCallExpr> arg) {
-            // Found a method call
-//        	System.out.println("Method name");
-//            System.out.println(n.getScope() + " - " + n.getName());
-//            System.out.println("Arguments");
-//            System.out.println(n.getArguments().toString() + "\n");
-            arg.add(n);
-            // Don't forget to call super, it may find more method calls inside the arguments of this method call, for example.
-            super.visit(n, arg);
-        }
-    }
-    
-    private static boolean objectsUse(List<ReturnStmt> returns){
-    	if(returns.size() > 1){
-    		//when would this apply?
-    		System.out.println("Can be refactored to use less return statements");    		
-        	return false;
-    	}
-    	else{
-    		ReturnStmt n = returns.get(0);
-    		List<MethodCallExpr> returnMethods = new ArrayList<MethodCallExpr>();
-    		n.accept(new OptionalMethodVisitor(), returnMethods);
-    		if(returnMethods.size() == 2){
-    			if(returnMethods.get(0).getScope().get().toString().equals("String") &&
-    					returnMethods.get(0).getNameAsString().equals("format")){
-    				if(!returnMethods.get(0).getArgument(0).toString().equals("\"One for %s, one for me.\"")){
-    					return false;
-    				};
-    			}
-    			if(returnMethods.get(1).getScope().get().toString().equals("Objects") &&
-    					returnMethods.get(1).getNameAsString().equals("toString")){
-    				if(!returnMethods.get(1).getArgument(0).toString().equals("name")){
-    					return false;
-    				};
-    				if(!returnMethods.get(1).getArgument(1).toString().equals("\"you\"")){
-    					return false;
-    				}
-    			}
-    		}
-    		else{
-    			return false;
-    		}
-    		return true;
-    	}
-    }
-    
-    private static boolean optionalUse(List<ReturnStmt> returns){
-    	if(returns.size() > 1){
-    		//when would this apply?
-    		System.out.println("Can be refactored to use less return statements");    		
-        	return false;
-    	}
-    	else{
-    		ReturnStmt n = returns.get(0);
-    		List<MethodCallExpr> returnMethods = new ArrayList<MethodCallExpr>();
-    		n.accept(new OptionalMethodVisitor(), returnMethods);
-    		if(returnMethods.size() == 3){
-    			if(returnMethods.get(0).getScope().get().toString().equals("String") &&
-    					returnMethods.get(0).getNameAsString().equals("format")){
-    				if(!returnMethods.get(0).getArgument(0).toString().equals("\"One for %s, one for me.\"")){
-//    					System.out.println(returnMethods.get(0).getArgument(0).toStringLiteralExpr().get().asString());
-    					return false;
-    				};
-    			}
-    			if(returnMethods.get(1).getScope().get().toString().equals("Optional.ofNullable(name)") &&
-    					returnMethods.get(1).getNameAsString().equals("orElse")){
-    				if(!returnMethods.get(1).getArgument(0).toString().equals("\"you\"")){
-    					return false;
-    				};
-    			}
-    			if(returnMethods.get(2).getScope().get().toString().equals("Optional") &&
-    					returnMethods.get(2).getNameAsString().equals("orNullable")){
-    				if(!returnMethods.get(2).getArgument(0).toString().equals("name")){
-    					return false;
-    				};
-    			}
-    		}
-    		return true;
-    	}
-    }
     
 	public static void main(String [] Args) throws Exception{
 		JSONObject analysis = new JSONObject();
@@ -204,7 +106,7 @@ public class Twofer_Parser {
 		
 		//Check the return statement
 		List<ReturnStmt> returns = new ArrayList<ReturnStmt>();
-		cu.accept(new ReturnVisitor(false), returns);
+		cu.accept(new ReturnVisitor(), returns);
 		if(returns.size() < 1){
 			comments.add("There is not return statement");
 			System.out.println("Added comment: There's no return statement");
@@ -214,14 +116,16 @@ public class Twofer_Parser {
 		//Check for import statements
 		if(cu.getImports().size() == 1){
 			if(cu.getImport(0).getName().toString().equals("java.util.Optional")){
-				if (optionalUse(returns)) status = "approve_as_optimal";
+				OptimalOptional opt = new OptimalOptional(cu);
+				if (opt.parse(returns)) status = "approve_as_optimal";
 			}
 			if(cu.getImport(0).getName().toString().equals("java.util.Objects")){
-				if (objectsUse(returns)) status = "approve_as_optimal";
+				OptimalObjects obj = new OptimalObjects(cu);
+				if (obj.parse(returns)) status = "approve_as_optimal";
 			}
 		}
 		else if(cu.getImports().size() > 1){
-			//what to do here?
+			//what to do here since there shouldn't be the need for multiple imported packages
 			System.out.println("too many imports");
 		}
 		
