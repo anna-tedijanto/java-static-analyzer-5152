@@ -6,6 +6,6 @@ public class TwoferParserTest {
     @Test
     public void testTwoferParser() throws Exception{
         // TwoferParser sp = new TwoferParser();
-        assertEquals(true, TwoferParser.parse("Twofer_2.java"));
+        assertEquals(true, TwoferParser.parse(TwoferParser.getContent("Twofer_2.java")));
     }
 }

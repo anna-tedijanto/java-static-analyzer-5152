@@ -80,8 +80,7 @@ class TwoferParser {
         }
     }
 
-    public static boolean parse(String flname) throws Exception {
-        CompilationUnit cu = getContent(flname);
+    public static boolean parse(CompilationUnit cu) throws Exception {
         List<ReturnStmt> returns = new ArrayList<ReturnStmt>();
         cu.accept(new ReturnVisitor(false), returns);
 
