@@ -1,3 +1,4 @@
+package exercism_parser;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
@@ -62,8 +63,8 @@ class OptimalFormat {
             List<MethodCallExpr> returnMethods = new ArrayList<MethodCallExpr>();
             n.accept(new OptionalMethodVisitor(), returnMethods);
             if(returnMethods.size() == 1){
-                System.out.println("arguments: " + returnMethods.get(0).getArguments().toString());
-                System.out.println(returnMethods.get(0).getNameAsString());
+                // System.out.println("arguments: " + returnMethods.get(0).getArguments().toString());
+                // System.out.println(returnMethods.get(0).getNameAsString());
                 if(returnMethods.get(0).getScope().get().toString().equals("String") &&
                         returnMethods.get(0).getNameAsString().equals("format")){
                     if(!returnMethods.get(0).getArgument(0).toString().equals("\"One for %s, one for me.\"")){
