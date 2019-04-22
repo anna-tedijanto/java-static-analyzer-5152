@@ -94,7 +94,7 @@ public class Twofer_Parser {
         String status = "refer_to_mentor";
         ArrayList<String> comments = new ArrayList<String>();
 
-        CompilationUnit cu = getContent("twofer3.java");
+        CompilationUnit cu = getContent("twofer.java");
 
         //Check that the class name is "twofer"
         Optional<ClassOrInterfaceDeclaration> classX = cu.getClassByName("twofer");
@@ -119,9 +119,13 @@ public class Twofer_Parser {
                 OptimalOptional opt = new OptimalOptional(cu);
                 if (opt.parse(returns)) status = "approve_as_optimal";
             }
-            if(cu.getImport(0).getName().toString().equals("java.util.Objects")){
+            else if(cu.getImport(0).getName().toString().equals("java.util.Objects")){
                 OptimalObjects obj = new OptimalObjects(cu);
                 if (obj.parse(returns)) status = "approve_as_optimal";
+            }
+            else if(cu.getImport(0).getName().toString().equals("java.text.MessageFormat")){
+                OptimalMessage msg = new OptimalMessage(cu);
+                if (msg.parse(returns)) status = "approve_as_optimal";
             }
         }
         else if(cu.getImports().size() > 1){
@@ -147,7 +151,7 @@ public class Twofer_Parser {
         }
 
         //Checks all methods being called
-//		cu.accept(new MethodCallVisitor(), null);
+//      cu.accept(new MethodCallVisitor(), null);
         //If there's a variable in return statement, want to check the values of the variables
 
         //Writing to the json file
@@ -163,7 +167,5 @@ public class Twofer_Parser {
         } catch (Exception ex) {
             System.out.println("error: " + ex.toString());
         }
-
     }
-
 }
